@@ -1,0 +1,17 @@
+# Datos generados automáticamente
+data/
+
+# Entorno virtual
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Base de datos local
+*.db
+
+# Variables de entorno
+.env
