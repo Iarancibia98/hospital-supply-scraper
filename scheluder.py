@@ -33,7 +33,7 @@ if __name__ == "__main__":
         replace_existing=True,
     )
 
-    logger.info("Scheduler iniciado. Pipeline correrá todos los días a las 08:00.")
+    logger.info("Scheduler iniciado. Pipeline correrá todos los días a las 8:00.")
     logger.info("Presiona Ctrl+C para detener.")
 
     try:
