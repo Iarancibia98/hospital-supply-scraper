@@ -40,7 +40,28 @@ class DB:
         cols_to_insert = [c for c in df.columns if c in valid_cols]
         df_clean = df[cols_to_insert].copy()
 
-        with sqlite3.connect(self.db_path) as conn:
+        # Verificar qué fechas ya existen en la base de datos
+        fechas_nuevas = df_clean["date_scraped"].unique()
+        placeholders = ",".join([f"'{f}'" for f in fechas_nuevas])
+
+        query = f"""
+            SELECT date_scraped FROM {table}
+            WHERE date_scraped IN ({placeholders})
+        """
+
+        with __import__('sqlite3').connect(self.db_path) as conn:
+            import pandas as pd
+            fechas_existentes = pd.read_sql_query(query, conn)
+
+        if not fechas_existentes.empty:
+            fechas_ya_cargadas = set(fechas_existentes["date_scraped"])
+            df_clean = df_clean[~df_clean["date_scraped"].isin(fechas_ya_cargadas)]
+
+        if df_clean.empty:
+            logger.info("Datos de hoy ya están en la base de datos. Nada nuevo que cargar.")
+            return 0
+
+        with __import__('sqlite3').connect(self.db_path) as conn:
             df_clean.to_sql(table, conn, if_exists="append", index=False)
 
         logger.info(f"Insertadas {len(df_clean)} filas en '{table}'")

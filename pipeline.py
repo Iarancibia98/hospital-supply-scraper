@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+from processors.alert_engine import AlertEngine
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -33,12 +34,16 @@ def run():
     logger.info("\n[3/3] Cargando datos en SQLite...")
     db = DB()
     db.load(df)
+    logger.info("\n[4/4] Ejecutando motor de alertas...")
+    engine = AlertEngine(db)
+    total_alertas = engine.run()
 
     logger.info("\n" + "=" * 55)
     logger.info("  PIPELINE COMPLETADO")
     logger.info(f"  Registros scrapeados : {len(df)}")
     logger.info(f"  CSV guardado en      : {csv_path}")
     logger.info(f"  Total filas en DB    : {db.count()}")
+    logger.info(f"  Alertas generadas    : {total_alertas}")
     logger.info("=" * 55)
 
     print("\n📋 Vista previa:")
