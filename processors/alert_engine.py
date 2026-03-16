@@ -1,8 +1,9 @@
 import logging
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
 
 class AlertEngine:
 
@@ -23,45 +24,66 @@ class AlertEngine:
         self._guardar_alertas(alertas)
         logger.info(f"Alertas generadas: {len(alertas)}")
         return len(alertas)
-    
+
+    def _get_fecha_anterior(self):
+        hoy = datetime.today().strftime("%Y-%m-%d")
+        resultado = self.db.query(f"""
+            SELECT MAX(date_scraped) as fecha
+            FROM medical_products
+            WHERE date_scraped < '{hoy}'
+        """)
+        if resultado.empty or resultado["fecha"][0] is None:
+            return None
+        return resultado["fecha"][0]
+
     def _detectar_nuevas_escaseces(self):
-            hoy = datetime.today().strftime("%Y-%m-%d")
-            ayer = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        hoy = datetime.today().strftime("%Y-%m-%d")
+        ayer = self._get_fecha_anterior()
 
-            query_hoy = f"""
-                SELECT product_name FROM medical_products
-                WHERE status = 'Currently In Shortage'
-                AND date_scraped = '{hoy}'
-            """
+        if ayer is None:
+            logger.info("Sin datos anteriores para comparar.")
+            return []
 
-            query_ayer = f"""
-                SELECT product_name FROM medical_products
-                WHERE date_scraped = '{ayer}'
-            """
+        logger.info(f"Comparando {hoy} vs {ayer}")
 
-            df_hoy  = self.db.query(query_hoy)
-            df_ayer = self.db.query(query_ayer)
+        query_hoy = f"""
+            SELECT product_name FROM medical_products
+            WHERE status = 'Currently in Shortage'
+            AND date_scraped = '{hoy}'
+        """
 
-            if df_ayer.empty:
-                logger.info("Sin datos de ayer para comparar.")
-                return []
+        query_ayer = f"""
+            SELECT product_name FROM medical_products
+            WHERE date_scraped = '{ayer}'
+        """
 
-            nuevos = set(df_hoy["product_name"]) - set(df_ayer["product_name"])
+        df_hoy  = self.db.query(query_hoy)
+        df_ayer = self.db.query(query_ayer)
 
-            alertas = []
-            for producto in nuevos:
-                alertas.append({
-                    "product_name": producto,
-                    "alert_type":   "nueva_escasez",
-                    "message":      f"{producto} entró en escasez el {hoy}",
-                    "triggered_at": hoy,
-                })
-                logger.warning(f"ALERTA nueva escasez: {producto}")
+        if df_ayer.empty:
+            logger.info("Sin datos anteriores para comparar.")
+            return []
 
-            return alertas
+        nuevos = set(df_hoy["product_name"]) - set(df_ayer["product_name"])
+
+        alertas = []
+        for producto in nuevos:
+            alertas.append({
+                "product_name": producto,
+                "alert_type":   "nueva_escasez",
+                "message":      f"{producto} entró en escasez el {hoy}",
+                "triggered_at": hoy,
+            })
+            logger.warning(f"ALERTA nueva escasez: {producto}")
+
+        return alertas
+
     def _detectar_escaseces_resueltas(self):
         hoy = datetime.today().strftime("%Y-%m-%d")
-        ayer = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        ayer = self._get_fecha_anterior()
+
+        if ayer is None:
+            return []
 
         query_hoy = f"""
             SELECT product_name FROM medical_products
@@ -71,7 +93,7 @@ class AlertEngine:
 
         query_ayer = f"""
             SELECT product_name FROM medical_products
-            WHERE status = 'Currently In Shortage'
+            WHERE status = 'Currently in Shortage'
             AND date_scraped = '{ayer}'
         """
 
@@ -94,7 +116,7 @@ class AlertEngine:
             logger.info(f"ALERTA escasez resuelta: {producto}")
 
         return alertas
-    
+
     def _guardar_alertas(self, alertas):
         if not alertas:
             return
@@ -105,6 +127,7 @@ class AlertEngine:
             df_alertas.to_sql("alerts", conn, if_exists="append", index=False)
 
         logger.info(f"Guardadas {len(df_alertas)} alertas en la base de datos.")
+
 
 if __name__ == "__main__":
     import sys

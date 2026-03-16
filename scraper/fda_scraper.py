@@ -68,6 +68,9 @@ class FDAScraper(BaseScraper):
     def _limpiar(self, df):
         df["product_name"] = df["product_name"].str.strip().str.title()
         df["status"]       = df["status"].str.strip()
+        df["status"]       = df["status"].str.replace(
+                                "Resolved", "Resolved Shortage", regex=False
+                            )
         df = df.dropna(subset=["product_name"])
         df = df[df["product_name"] != ""]
         df = df.drop_duplicates(subset=["product_name", "date_scraped"])
