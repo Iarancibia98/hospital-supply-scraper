@@ -102,11 +102,10 @@ python scheduler.py
 ---
 
 ## 📊 Insights encontrados
-
-- **76 medicamentos** en escasez activa monitoreados diariamente
-- El sistema detecta automáticamente nuevas escaseces y resoluciones
-- Los datos se actualizan cada día a las 08:00 AM vía GitHub Actions
-- Historial acumulado desde el 13 de marzo de 2026
+- **71 medicamentos** en escasez activa al 16 de marzo 2026
+- **5 medicamentos** con escasez recientemente resuelta
+- Medicamentos críticos en escasez: anestésicos, soluciones IV, oncológicos
+- Sistema acumulando historial desde el 13 de marzo 2026
 
 ---
 
